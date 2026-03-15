@@ -69,7 +69,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
     long_turns = config.get("long_multiturn_turns", 3)
     reasoning_turns = config.get("long_reasoning_turns", 3)
     out_dir = Path(config.get("output_dir", "./results"))
-    show_graph = getattr(args, "graph", True)
+    show_graph = not getattr(args, "no_graph", False)
 
     try:
         task_type = TaskType(task_type_name)
@@ -156,15 +156,10 @@ def main() -> int:
     profile_parser.add_argument(
         "--no-graph",
         action="store_true",
-        dest="no_graph",
         help="Skip terminal graph (still write CSV)",
     )
-    profile_parser.set_defaults(func=cmd_profile, graph=True)
-    profile_parser.set_defaults(**{k: v for k, v in profile_parser.get_defaults().items() if k != "no_graph"})
-    # Apply --no-graph -> graph=False
+    profile_parser.set_defaults(func=cmd_profile)
     args = parser.parse_args()
-    if hasattr(args, "no_graph") and args.no_graph:
-        args.graph = False
     return args.func(args)
 
 
