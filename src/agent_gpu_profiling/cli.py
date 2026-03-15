@@ -11,6 +11,7 @@ if __name__ == "__main__" and str(Path(__file__).resolve().parent.parent) not in
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent_gpu_profiling.agent.runner import run_task
+from agent_gpu_profiling.agent.tools import TOOLS
 from agent_gpu_profiling.config import load_config
 from agent_gpu_profiling.profiler.gpu import sample_gpu_once
 from agent_gpu_profiling.tasks import TaskType, get_scenario
@@ -49,7 +50,8 @@ def cmd_profile(args: argparse.Namespace) -> int:
         num_steps=short_steps,
         num_turns=long_turns,
     )
-    total_steps = len([t for t in scenario if t.get("role") == "user"])
+    use_tools = task_type == TaskType.TOOL_LOOP
+    total_steps = len([t for t in scenario if t.get("role") == "user"]) if not use_tools else "N (tool rounds)"
 
     print(f"Profiling: backend={backend}  task_type={task_type_name}  steps={total_steps}")
     print("-" * 50)
@@ -63,6 +65,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
         model=model,
         task_type=task_type,
         on_step=on_step,
+        tools=TOOLS if use_tools else None,
     )
 
     print("-" * 50)

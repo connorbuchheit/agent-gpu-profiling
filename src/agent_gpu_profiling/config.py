@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
     """Load config from YAML file. Uses config/default.yaml if path is None."""
+    base = Path(__file__).resolve().parent.parent.parent
+    load_dotenv(base / ".env")
     if path is None:
-        base = Path(__file__).resolve().parent.parent.parent
         path = base / "config" / "default.yaml"
     path = Path(path)
     if not path.exists():

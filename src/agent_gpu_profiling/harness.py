@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from agent_gpu_profiling.agent.runner import run_task
+from agent_gpu_profiling.agent.tools import TOOLS
 from agent_gpu_profiling.config import load_config
 from agent_gpu_profiling.profiler.gpu import GPUMetricsCollector
 from agent_gpu_profiling.tasks import TaskType, get_scenario
@@ -53,6 +54,7 @@ def run_harness(config_path: str | Path | None = None) -> list[dict]:
                 base_url=base_url,
                 model=model,
                 task_type=task_type,
+                tools=TOOLS if task_type == TaskType.TOOL_LOOP else None,
             )
         finally:
             collector.stop()

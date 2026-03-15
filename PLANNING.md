@@ -164,3 +164,52 @@ agent-gpu-profiling/
 - GPU metrics: `nvidia-smi`, Python `pynvml` for programmatic sampling.
 
 Use this doc as the single source of truth when implementing each phase; update the checklists as you go.
+
+---
+
+## 10. Current workflow & what you’re fleshing out
+
+### Current workflow (what actually runs today)
+
+1. **Config**  
+   `config/default.yaml` (and env) set `base_url`, `model`, `task_types`, step/turn counts.  
+   Config is loaded when you run the CLI or harness.
+
+2. **Scenario**  
+   You pick a task type (`short_loop`, `long_multiturn`, `mixed`).  
+   `get_scenario(task_type, ...)` returns a **list of user messages** (e.g. “Step 1: what is 1+2?”, “Step 2: …”).  
+   There are **no real tools** yet — just fixed prompts.
+
+3. **Agent runner**  
+   For **each user message** in that list:
+   - Append the user message to the conversation.
+   - Call the LLM **once** (chat completion, no `tools` in the request).
+   - Append the assistant’s **text** reply.
+   - If you’re profiling, call `on_step(step, total)` after that reply.
+
+4. **Where the model runs**  
+   The LLM is **not** run inside this repo. You run **vLLM or SGLang** (or point to OpenAI) elsewhere.  
+   This repo is a **client**: it sends requests to `base_url` and, when the server is local, **profiles GPU/memory** on the same machine (e.g. with pynvml).
+
+5. **Profiling**  
+   - **CLI `profile`**: after each “step” (each user→assistant turn), sample GPU once and print “Step N/M, GPU %, Mem”.  
+   - **Harness/benchmark**: background thread samples GPU on an interval and writes CSV for each run.
+
+So today: **scenario = list of user messages → runner does one LLM call per user message, no tool calls.**
+
+### What “tool calling” adds (and what to do next)
+
+- **Tool calling** means: the agent can request **tool use** (e.g. “call calculator with 3+5”).  
+  The runner then **executes** that tool (or a stub), appends the result as a message, and calls the LLM again.  
+  So **one** user question can cause **several** LLM round-trips (model → tool_calls → run tool → model again → maybe more tools → final answer).
+
+What to implement:
+
+| # | What | Why |
+|---|------|-----|
+| 1 | **Tool definitions** | Define a few tools in OpenAI format (e.g. `calculator`, `get_time`) and pass them in `chat.completions.create(..., tools=...)`. |
+| 2 | **Tool loop in the runner** | When the model returns `tool_calls`, run the requested tools, append `tool` messages with results, call the LLM again. Repeat until the model responds with plain text (no tool_calls) or you hit a max step limit. |
+| 3 | **Tool-heavy scenario** | Add a scenario (e.g. one user prompt: “Use the calculator to compute (1+2)*(3+4) and tell me the result”) so the agent *actually* does multiple LLM + tool rounds. |
+| 4 | **`on_step` for tool rounds** | Call `on_step` after **each** LLM round-trip (including after tool-result→model), so profiling sees GPU/memory per “agent step” (each model call), not just per user message. |
+
+After that you have: **back-and-forth (multi-turn chat) + tool loops** in one small agent, and you can profile how vLLM vs SGLang behave under that workload.

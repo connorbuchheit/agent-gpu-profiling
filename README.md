@@ -2,7 +2,8 @@
 
 Prototype for profiling **GPU and memory usage** of a minimal LLM agent across **vLLM** and **SGLang** under different task profiles (short tool loops vs. longer multi-turn rollouts).
 
-**See [PLANNING.md](PLANNING.md)** for goals, architecture, task taxonomy, and implementation phases.
+**See [PLANNING.md](PLANNING.md)** for goals, architecture, task taxonomy, and implementation phases.  
+**Running on a Slurm cluster?** See [docs/SLURM.md](docs/SLURM.md).
 
 ## Quick start
 
@@ -33,6 +34,7 @@ Prototype for profiling **GPU and memory usage** of a minimal LLM agent across *
 
 - `config/default.yaml`: backend, `base_url`, model, task types, sampling interval, output dir.
 - Env overrides: `AGENT_GPU_BASE_URL`, `AGENT_GPU_MODEL`, `AGENT_GPU_OUTPUT_DIR`.
+- **OpenAI API**: Put `OPENAI_API_KEY` in `.env` (gitignored). Set `base_url` to `https://api.openai.com/v1` and `model` to e.g. `gpt-4o-mini` to use it.
 
 ## Layout
 

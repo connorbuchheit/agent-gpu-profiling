@@ -1,7 +1,14 @@
 # Results and env
 results/
 *.csv
+
+# Secrets — never commit
 .env
+.env.local
+.env.*.local
+*.key
+secrets.env
+
 .venv/
 venv/
 __pycache__/

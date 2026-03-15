@@ -23,6 +23,8 @@ def get_scenario(
         return _long_multiturn_scenario(num_turns)
     if task_type == TaskType.MIXED:
         return _short_loop_scenario(2) + _long_multiturn_scenario(1)
+    if task_type == TaskType.TOOL_LOOP:
+        return _tool_loop_scenario()
     raise ValueError(f"Unknown task type: {task_type}")
 
 
@@ -51,3 +53,16 @@ def _long_multiturn_scenario(n: int) -> list[dict]:
             ),
         })
     return steps
+
+
+def _tool_loop_scenario() -> list[dict]:
+    """One user message that should trigger multiple tool calls (calculator) and back-and-forth."""
+    return [
+        {
+            "role": "user",
+            "content": (
+                "Use the calculator tool to compute (1+2)*(3+4). "
+                "Call the tool for each part if needed, then give me the final number."
+            ),
+        },
+    ]

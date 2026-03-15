@@ -8,4 +8,5 @@ class TaskType(str, Enum):
 
     SHORT_LOOP = "short_loop"       # Many short requests (tool-style steps)
     LONG_MULTITURN = "long_multiturn"  # Fewer, longer turns
-    MIXED = "mixed"                # Combination of both
+    MIXED = "mixed"                 # Combination of both
+    TOOL_LOOP = "tool_loop"         # One user query that triggers real tool calls (multi round-trip)

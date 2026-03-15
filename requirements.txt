@@ -6,6 +6,7 @@ pynvml>=11.0.0
 
 # Config and CLI
 pyyaml>=6.0
+python-dotenv>=1.0.0
 
 # Optional: for structured output / async
 # httpx>=0.25.0
