@@ -1,0 +1,22 @@
+# Agent GPU Profiling — default config
+# Override via env or CLI when running benchmarks.
+
+backend: vllm
+base_url: "http://localhost:8000/v1"
+model: "meta-llama/Llama-3.2-1B"
+
+# Task types to run (see PLANNING.md §3)
+task_types:
+  - short_loop
+  - long_multiturn
+  # - mixed
+
+# Profiling
+sampling_interval_sec: 1.0
+output_dir: "./results"
+
+# Short tool loop: number of agent steps (LLM calls)
+short_loop_steps: 5
+
+# Long multi-turn: number of long turns
+long_multiturn_turns: 3

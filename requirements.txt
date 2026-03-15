@@ -1,0 +1,11 @@
+# LLM client (OpenAI-compatible; works with vLLM and SGLang)
+openai>=1.0.0
+
+# GPU metrics
+pynvml>=11.0.0
+
+# Config and CLI
+pyyaml>=6.0
+
+# Optional: for structured output / async
+# httpx>=0.25.0
