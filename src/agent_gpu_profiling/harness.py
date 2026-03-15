@@ -26,6 +26,7 @@ def run_harness(config_path: str | Path | None = None) -> list[dict]:
     out_dir = Path(config["output_dir"])
     short_steps = config.get("short_loop_steps", 5)
     long_turns = config.get("long_multiturn_turns", 3)
+    reasoning_turns = config.get("long_reasoning_turns", 3)
 
     summaries = []
     for tt_name in task_types:
@@ -37,6 +38,7 @@ def run_harness(config_path: str | Path | None = None) -> list[dict]:
             task_type,
             num_steps=short_steps,
             num_turns=long_turns,
+            num_reasoning_turns=reasoning_turns,
         )
         run_id = str(uuid.uuid4())[:8]
         csv_path = out_dir / f"metrics_{backend}_{tt_name}_{run_id}.csv"

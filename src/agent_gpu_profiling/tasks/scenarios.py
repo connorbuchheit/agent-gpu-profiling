@@ -10,12 +10,12 @@ def get_scenario(
     *,
     num_steps: int = 5,
     num_turns: int = 3,
+    num_reasoning_turns: int = 3,
 ) -> list[dict]:
     """
     Return a list of "turns" for the agent. Each turn is a dict with at least:
     - role: "user" | "assistant" | "system"
     - content: str
-    Optional: max_tokens, tool_instruction (for short_loop).
     """
     if task_type == TaskType.SHORT_LOOP:
         return _short_loop_scenario(num_steps)
@@ -25,6 +25,8 @@ def get_scenario(
         return _short_loop_scenario(2) + _long_multiturn_scenario(1)
     if task_type == TaskType.TOOL_LOOP:
         return _tool_loop_scenario()
+    if task_type == TaskType.LONG_REASONING:
+        return _long_reasoning_scenario(num_reasoning_turns)
     raise ValueError(f"Unknown task type: {task_type}")
 
 
@@ -66,3 +68,34 @@ def _tool_loop_scenario() -> list[dict]:
             ),
         },
     ]
+
+
+def _long_reasoning_scenario(n: int) -> list[dict]:
+    """Heavier rollouts: long chain-of-thought style prompts, multi-part questions, more context."""
+    return [
+        {
+            "role": "user",
+            "content": (
+                "I'm building a small agent that runs on a GPU. It does a few short tool calls and then a longer answer. "
+                "Walk me through step by step: (1) what happens to GPU memory when the model loads, "
+                "(2) what happens during each short tool-call request, (3) what happens during a long multi-turn reply. "
+                "Give a concise 3–4 sentence explanation for each, then one sentence on how you'd profile this."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "Compare vLLM and SGLang for this workload: many small requests (tool loops) vs fewer, longer conversations. "
+                "List 2–3 pros and cons of each for (a) latency and (b) memory, and suggest which you'd pick for an agent that "
+                "does 5–10 tool calls per task and then one long final answer. Keep it under 150 words."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "Write a minimal Python pseudocode outline (just the main steps, no full code) for a profiler that: "
+                "samples GPU utilization and memory every second during an agent run, logs each step (e.g. step 1/10), "
+                "and at the end writes a CSV and optionally plots utilization over time. Number the steps 1–6."
+            ),
+        },
+    ][:n]

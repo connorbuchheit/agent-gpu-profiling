@@ -22,3 +22,6 @@ short_loop_steps: 5
 
 # Long multi-turn: number of long turns
 long_multiturn_turns: 3
+
+# Long reasoning: heavier prompts (chain-of-thought style)
+long_reasoning_turns: 3
