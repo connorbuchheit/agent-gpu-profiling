@@ -3,7 +3,8 @@
 
 backend: vllm
 base_url: "http://localhost:8000/v1"
-model: "meta-llama/Llama-3.2-1B"
+# Use TinyLlama (ungated); or meta-llama/Llama-3.2-1B with HF token
+model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
 # Task types to run (see PLANNING.md §3)
 task_types:

@@ -40,6 +40,26 @@ source .venv/bin/activate   # if you already created venv on shared storage
 
 (Your venv lives in home, so once created it’s available from any session that has access to home.)
 
+**If `python3 -m venv` fails** (e.g. “ensurepip is not available” and you don’t have sudo): skip the venv and use the system Python with user installs. On the compute node:
+
+```bash
+cd ~/agent-gpu-profiling
+pip install --user -r requirements.txt
+pip install --user vllm
+# Optional: export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then run the server and profiler with `python3` (see section 3 below; don’t `source .venv/bin/activate`).
+
+**Alternative: use the cluster container** (often has a working Python/venv):
+
+```bash
+srun --gpus=1 --mem=64G --container-image=nvcr.io#nvidia/pytorch:24.03-py3 --pty bash
+cd ~/agent-gpu-profiling
+pip install -r requirements.txt vllm
+# Then run server + profiler with python (no venv needed if container has pip)
+```
+
 ## 3. Run the agent + profiler on GPU
 
 You need the **model server** (vLLM) and the **client** (this repo) on the **same** node. Two ways:
@@ -56,7 +76,8 @@ On that **compute node**:
 
 ```bash
 cd ~/agent-gpu-profiling
-source .venv/bin/activate
+# If you have a venv: source .venv/bin/activate
+# If you used pip --user: no activate needed, use python3
 
 # Start vLLM in the background (uses the GPU)
 ./scripts/run_vllm.sh &
@@ -64,8 +85,8 @@ sleep 30   # give it time to load the model
 
 # Run the profiler (hits localhost:8000, so inference is on this GPU)
 export PYTHONPATH=src
-python -m agent_gpu_profiling.cli profile
-# or: python scripts/run_benchmark.py
+python3 -m agent_gpu_profiling.cli profile
+# or: python3 scripts/run_benchmark.py
 
 # When done, stop vLLM
 kill %1
