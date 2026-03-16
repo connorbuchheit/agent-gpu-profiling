@@ -41,5 +41,5 @@ def _default_config() -> dict[str, Any]:
         "output_dir": "./results",
         "short_loop_steps": 5,
         "long_multiturn_turns": 3,
-        "long_reasoning_turns": 3,
+        "long_reasoning_turns": 25,
     }

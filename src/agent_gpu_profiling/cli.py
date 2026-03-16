@@ -67,7 +67,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
     task_type_name = args.task_type or config.get("task_types", ["short_loop"])[0]
     short_steps = config.get("short_loop_steps", 5)
     long_turns = config.get("long_multiturn_turns", 3)
-    reasoning_turns = config.get("long_reasoning_turns", 3)
+    reasoning_turns = getattr(args, "reasoning_turns", None) or config.get("long_reasoning_turns", 25)
     out_dir = Path(config.get("output_dir", "./results"))
     show_graph = not getattr(args, "no_graph", False)
 
@@ -157,6 +157,13 @@ def main() -> int:
         "--no-graph",
         action="store_true",
         help="Skip terminal graph (still write CSV)",
+    )
+    profile_parser.add_argument(
+        "--reasoning-turns",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Override long_reasoning_turns (for --task-type long_reasoning). Default from config (e.g. 25).",
     )
     profile_parser.set_defaults(func=cmd_profile)
     args = parser.parse_args()
