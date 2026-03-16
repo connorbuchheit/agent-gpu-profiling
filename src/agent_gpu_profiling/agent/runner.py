@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any, Callable
 
 from openai import OpenAI
@@ -22,18 +23,12 @@ def run_task(
     model: str,
     task_type: TaskType,
     max_tokens_per_call: int = 256,
-    on_step: Callable[[int, int], None] | None = None,
+    on_step: Callable[[int, int, dict[str, Any] | None], None] | None = None,
     tools: list[dict] | None = None,
 ) -> list[dict]:
     """
-    Run the agent over the given scenario.
-
-    - If `tools` is None: each user message gets one LLM call (no tool use). on_step(step, total) per user turn.
-    - If `tools` is provided: we pass tools to the API. When the model returns tool_calls, we execute them,
-      append results, and call the LLM again until it responds without tool_calls or we hit MAX_TOOL_ROUNDS.
-      on_step(step, total) after each LLM round-trip (step = 1, 2, ...; total = max steps for that message).
-
-    Returns the full message history (user, assistant, and optionally tool messages).
+    Run the agent over the given scenario. on_step(step, total, step_data) is called after each turn.
+    step_data may include latency_ms, prompt_tokens, completion_tokens. Returns full message history.
     """
     api_key = os.environ.get("OPENAI_API_KEY") or "dummy"
     client = OpenAI(base_url=base_url, api_key=api_key)
@@ -71,20 +66,26 @@ def _run_one_turn(
     max_tokens: int,
     step: int,
     total: int,
-    on_step: Callable[[int, int], None] | None,
+    on_step: Callable[[int, int, dict[str, Any] | None], None] | None,
 ) -> None:
-    """Single LLM call; append assistant text to messages and history."""
+    """Single LLM call; append assistant text to messages and history. Pass latency and token usage to on_step."""
+    step_data: dict[str, Any] = {}
+    t0 = time.perf_counter()
     resp = client.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=max_tokens,
     )
+    step_data["latency_ms"] = round((time.perf_counter() - t0) * 1000)
+    if getattr(resp, "usage", None):
+        step_data["prompt_tokens"] = getattr(resp.usage, "prompt_tokens", None)
+        step_data["completion_tokens"] = getattr(resp.usage, "completion_tokens", None)
     choice = resp.choices[0]
     content = (choice.message.content or "").strip()
     messages.append({"role": "assistant", "content": content})
     history.append({"role": "assistant", "content": content})
     if on_step:
-        on_step(step, total)
+        on_step(step, total, step_data)
 
 
 def _run_tool_loop(
@@ -96,12 +97,14 @@ def _run_tool_loop(
     tools: list[dict],
     user_step: int,
     total_user_turns: int,
-    on_step: Callable[[int, int], None] | None,
+    on_step: Callable[[int, int, dict[str, Any] | None], None] | None,
 ) -> None:
     """Repeatedly call LLM; on tool_calls, execute tools, append results, call again. on_step per LLM call."""
     round_index = 0
     while round_index < MAX_TOOL_ROUNDS:
         round_index += 1
+        step_data: dict[str, Any] = {}
+        t0 = time.perf_counter()
         resp = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -109,6 +112,10 @@ def _run_tool_loop(
             tools=tools,
             tool_choice="auto",
         )
+        step_data["latency_ms"] = round((time.perf_counter() - t0) * 1000)
+        if getattr(resp, "usage", None):
+            step_data["prompt_tokens"] = getattr(resp.usage, "prompt_tokens", None)
+            step_data["completion_tokens"] = getattr(resp.usage, "completion_tokens", None)
         choice = resp.choices[0]
         msg = choice.message
         # Build assistant message for API (may have content and/or tool_calls)
@@ -122,8 +129,7 @@ def _run_tool_loop(
         history.append({"role": "assistant", "content": msg.content or "", "tool_calls": getattr(msg, "tool_calls", None)})
 
         if on_step:
-            # Report step as (user turn, round within that turn) for clarity; total = max rounds
-            on_step(round_index, MAX_TOOL_ROUNDS)
+            on_step(round_index, MAX_TOOL_ROUNDS, step_data)
 
         if not getattr(msg, "tool_calls", None):
             break

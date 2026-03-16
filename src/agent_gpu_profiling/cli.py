@@ -24,12 +24,13 @@ except ImportError:
 
 
 def _write_csv(samples: list[dict], path: Path) -> None:
-    """Write step, gpu_util_pct, gpu_mem_used_mb to CSV."""
+    """Write step, gpu_util_pct, gpu_mem_used_mb, latency_ms, prompt_tokens, completion_tokens to CSV."""
     if not samples:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = ["step", "gpu_util_pct", "gpu_mem_used_mb", "latency_ms", "prompt_tokens", "completion_tokens"]
     with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["step", "gpu_util_pct", "gpu_mem_used_mb"])
+        w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         w.writeheader()
         w.writerows(samples)
 
@@ -88,22 +89,29 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
     samples: list[dict] = []
 
-    def on_step(step: int, total: int) -> None:
+    def on_step(step: int, total: int, step_data: dict | None = None) -> None:
         sample = sample_gpu_once()
         if sample is None:
-            print(f"  Step {step}/{total}   GPU: N/A   Mem: N/A (pynvml not available or no GPU)")
-            return
+            sample = {}
         util = sample.get("gpu_util_pct")
         used = sample.get("gpu_mem_used_mb")
         total_mb = sample.get("gpu_mem_total_mb")
         util_str = f"{util}%" if util is not None else "N/A"
         mem_str = f"{used:.0f} / {total_mb:.0f} MiB" if used is not None and total_mb is not None else "N/A"
-        print(f"  Step {step}/{total}   GPU: {util_str}   Mem: {mem_str}")
-        samples.append({
-            "step": step,
-            "gpu_util_pct": util,
-            "gpu_mem_used_mb": used,
-        })
+        lat_ms = (step_data or {}).get("latency_ms")
+        pt = (step_data or {}).get("prompt_tokens")
+        ct = (step_data or {}).get("completion_tokens")
+        lat_str = f"{lat_ms}ms" if lat_ms is not None else "N/A"
+        tok_str = f"{pt}+{ct}" if pt is not None and ct is not None else (f"{pt}+?" if pt is not None else "N/A")
+        print(f"  Step {step}/{total}   GPU: {util_str}   Mem: {mem_str}   Latency: {lat_str}   Tokens: {tok_str}")
+        row = {"step": step, "gpu_util_pct": util, "gpu_mem_used_mb": used}
+        if lat_ms is not None:
+            row["latency_ms"] = lat_ms
+        if pt is not None:
+            row["prompt_tokens"] = pt
+        if ct is not None:
+            row["completion_tokens"] = ct
+        samples.append(row)
 
     print(f"Profiling: backend={backend}  task_type={task_type_name}  steps={total_steps}")
     print("-" * 50)
@@ -122,6 +130,24 @@ def cmd_profile(args: argparse.Namespace) -> int:
     csv_path = out_dir / f"profile_{backend}_{task_type_name}.csv"
     _write_csv(samples, csv_path)
     print(f"Wrote: {csv_path}")
+
+    # Summary stats
+    if samples:
+        utils = [s.get("gpu_util_pct") for s in samples if s.get("gpu_util_pct") is not None]
+        mems = [s.get("gpu_mem_used_mb") for s in samples if s.get("gpu_mem_used_mb") is not None]
+        lats = [s.get("latency_ms") for s in samples if s.get("latency_ms") is not None]
+        pt_sum = sum(s.get("prompt_tokens") or 0 for s in samples)
+        ct_sum = sum(s.get("completion_tokens") or 0 for s in samples)
+        n = len(samples)
+        print("\n--- Summary ---")
+        if utils:
+            print(f"  GPU %     min/avg/max: {min(utils):.0f} / {sum(utils)/n:.0f} / {max(utils):.0f}")
+        if mems:
+            print(f"  Mem MiB   min/avg/max: {min(mems):.0f} / {sum(mems)/n:.0f} / {max(mems):.0f}")
+        if lats:
+            print(f"  Latency   min/avg/max: {min(lats)} / {round(sum(lats)/n)} / {max(lats)} ms")
+        if pt_sum or ct_sum:
+            print(f"  Tokens   prompt: {pt_sum}   completion: {ct_sum}   total: {pt_sum + ct_sum}")
 
     if show_graph and samples and plt:
         print("\n--- GPU utilization over steps ---")
