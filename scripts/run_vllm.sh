@@ -6,9 +6,9 @@
 set -e
 export VLLM_USE_MODELSCOPE=false
 
-# TinyLlama = no Hugging Face login; or use meta-llama/Llama-3.2-1B with HF_TOKEN
+# Qwen2.5-3B: 32k context; or Qwen/Qwen2.5-7B-Instruct for heavier (needs more VRAM)
 python3 -m vllm.entrypoints.openai.api_server \
   --host 0.0.0.0 \
   --port 8000 \
-  --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --model Qwen/Qwen2.5-3B-Instruct \
   "$@"

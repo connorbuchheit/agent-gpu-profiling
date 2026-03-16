@@ -35,7 +35,7 @@ def _default_config() -> dict[str, Any]:
     return {
         "backend": "vllm",
         "base_url": "http://localhost:8000/v1",
-        "model": "meta-llama/Llama-3.2-1B",
+        "model": "Qwen/Qwen2.5-3B-Instruct",
         "task_types": ["short_loop", "long_multiturn"],
         "sampling_interval_sec": 1.0,
         "output_dir": "./results",
