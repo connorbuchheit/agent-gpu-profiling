@@ -3,8 +3,11 @@
 
 backend: vllm
 base_url: "http://localhost:8000/v1"
-# Qwen2.5-3B: 32k context (avoids TinyLlama 2k limit); or Qwen2.5-7B-Instruct for heavier
+# Must match the model vLLM was started with. Check with: curl -s http://127.0.0.1:8000/v1/models
+# Qwen2.5-3B: 32k context (restart vLLM with scripts/run_vllm.sh to load it)
+# If you get 404, vLLM is still on TinyLlama — either restart vLLM with Qwen or use TinyLlama below.
 model: "Qwen/Qwen2.5-3B-Instruct"
+# model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # fallback if vLLM is still serving this
 
 # Task types to run (see PLANNING.md §3)
 task_types:
