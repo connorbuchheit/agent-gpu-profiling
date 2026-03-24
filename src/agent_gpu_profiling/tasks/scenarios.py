@@ -5,12 +5,28 @@ from __future__ import annotations
 from .types import TaskType
 
 
+# Long static document prepended as an extra system block — shared across all turns in the chat.
+# Multi-turn chat then reuses this prefix in the growing context; SGLang RadixAttention can match it efficiently.
+_RADIX_STRESS_SYSTEM_DOC = """
+[REFERENCE DOCUMENT — DO NOT SUMMARIZE UNLESS ASKED]
+Section A. Agent runtime policy: Each turn must respect token budgets. Tool outputs are appended to context.
+Section B. GPU profiling: Sample utilization after each completion. Log step index, latency, prompt and completion tokens.
+Section C. Serving backends: vLLM uses PagedAttention for KV blocks. SGLang uses RadixAttention to reuse prefixes across requests and turns.
+Section D. Multi-turn: Conversation history grows monotonically. Earlier assistant replies become part of the prompt for later turns.
+Section E. Prefix caching: When many prompts share a long common prefix, radix-tree style caches avoid recomputing attention for that prefix.
+Section F. Experiment design: Compare latency on step 1 vs step N with identical hardware; rising prompt tokens should correlate with cache hits on backends that support prefix reuse.
+Section G. Reproducibility: Fix model, temperature, and max_tokens when comparing servers.
+Section H. Safety: This is synthetic benchmark text for KV and prefix experiments only.
+""".strip() * 4  # repeat to lengthen shared prefix (~few k tokens when tokenized)
+
+
 def get_scenario(
     task_type: TaskType,
     *,
     num_steps: int = 5,
     num_turns: int = 3,
     num_reasoning_turns: int = 3,
+    num_shared_prefix_steps: int = 12,
 ) -> list[dict]:
     """
     Return a list of "turns" for the agent. Each turn is a dict with at least:
@@ -27,6 +43,8 @@ def get_scenario(
         return _tool_loop_scenario()
     if task_type == TaskType.LONG_REASONING:
         return _long_reasoning_scenario(num_reasoning_turns)
+    if task_type == TaskType.SHARED_PREFIX:
+        return _shared_prefix_scenario(num_shared_prefix_steps)
     raise ValueError(f"Unknown task type: {task_type}")
 
 
@@ -95,3 +113,20 @@ def _long_reasoning_scenario(n: int) -> list[dict]:
         "Give a 2–3 sentence summary: how would you choose between vLLM and SGLang for a production agent that does 5–20 tool calls per user request and then one long answer.",
     ]
     return [{"role": "user", "content": prompts[i % len(prompts)]} for i in range(n)]
+
+
+def _shared_prefix_scenario(n: int) -> list[dict]:
+    """
+    Long fixed system document + many short user turns.
+    Ideal for comparing SGLang (RadixAttention / prefix cache) vs vLLM: prompt grows with history but
+    the initial long prefix is identical structure each time; later steps may show lower latency if cache hits.
+    """
+    out: list[dict] = [{"role": "system", "content": _RADIX_STRESS_SYSTEM_DOC}]
+    for i in range(n):
+        out.append({
+            "role": "user",
+            "content": (
+                f"Q{i + 1}: In one sentence, name one metric you would log when profiling an LLM agent (step {i + 1}/{n})."
+            ),
+        })
+    return out

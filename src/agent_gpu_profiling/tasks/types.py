@@ -11,3 +11,4 @@ class TaskType(str, Enum):
     MIXED = "mixed"                     # Combination of both
     TOOL_LOOP = "tool_loop"             # One user query that triggers real tool calls (multi round-trip)
     LONG_REASONING = "long_reasoning"   # Heavier prompts: chain-of-thought, long context, multi-part
+    SHARED_PREFIX = "shared_prefix"     # Long fixed system doc + many short turns (stresses RadixAttention / prefix cache)

@@ -69,6 +69,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
     short_steps = config.get("short_loop_steps", 5)
     long_turns = config.get("long_multiturn_turns", 3)
     reasoning_turns = getattr(args, "reasoning_turns", None) or config.get("long_reasoning_turns", 25)
+    shared_prefix_steps = config.get("shared_prefix_steps", 12)
     out_dir = Path(config.get("output_dir", "./results"))
     show_graph = not getattr(args, "no_graph", False)
 
@@ -83,6 +84,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
         num_steps=short_steps,
         num_turns=long_turns,
         num_reasoning_turns=reasoning_turns,
+        num_shared_prefix_steps=shared_prefix_steps,
     )
     use_tools = task_type == TaskType.TOOL_LOOP
     total_steps = len([t for t in scenario if t.get("role") == "user"]) if not use_tools else "N (tool rounds)"

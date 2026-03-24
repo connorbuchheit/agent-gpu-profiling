@@ -33,17 +33,28 @@ def run_task(
     api_key = os.environ.get("OPENAI_API_KEY") or "dummy"
     client = OpenAI(base_url=base_url, api_key=api_key)
     history: list[dict] = []
-    system = (
+    base_system = (
         "You are a helpful assistant. Use the tools when needed to answer. "
         "Keep answers concise unless asked to elaborate."
     )
-    messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
+    # Leading scenario entries with role "system" are merged (e.g. long shared doc for RadixAttention stress).
+    system_chunks: list[str] = [base_system]
+    rest: list[dict] = []
+    seen_user = False
+    for item in scenario:
+        if not seen_user and item.get("role") == "system":
+            system_chunks.append(str(item.get("content", "")))
+            continue
+        seen_user = True
+        rest.append(item)
+    merged_system = "\n\n---\n\n".join(s for s in system_chunks if s)
+    messages: list[dict[str, Any]] = [{"role": "system", "content": merged_system}]
 
-    user_turns = [t for t in scenario if t.get("role") == "user"]
+    user_turns = [t for t in rest if t.get("role") == "user"]
     total_user_turns = len(user_turns)
     step = 0
 
-    for turn in scenario:
+    for turn in rest:
         if turn.get("role") != "user":
             continue
         step += 1

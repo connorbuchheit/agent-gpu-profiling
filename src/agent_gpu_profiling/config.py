@@ -28,6 +28,8 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
         data["model"] = model
     if out := os.environ.get("AGENT_GPU_OUTPUT_DIR"):
         data["output_dir"] = out
+    if backend := os.environ.get("AGENT_GPU_BACKEND"):
+        data["backend"] = backend
     return {**_default_config(), **data}
 
 
@@ -42,4 +44,5 @@ def _default_config() -> dict[str, Any]:
         "short_loop_steps": 5,
         "long_multiturn_turns": 3,
         "long_reasoning_turns": 25,
+        "shared_prefix_steps": 12,
     }

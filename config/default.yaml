@@ -28,3 +28,10 @@ long_multiturn_turns: 3
 
 # Long reasoning: many heavier prompts (chain-of-thought style)
 long_reasoning_turns: 25
+
+# shared_prefix: long fixed system doc + N short questions (RadixAttention / prefix cache stress)
+shared_prefix_steps: 12
+
+# Switch backend label + URL when using SGLang (see docs/SGLANG.md)
+# backend: sglang
+# base_url: "http://localhost:8000/v1"
