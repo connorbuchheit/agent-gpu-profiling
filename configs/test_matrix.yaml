@@ -1,0 +1,46 @@
+# LLM inference configuration matrix (edit lists to scope runs).
+# Full Cartesian product can be huge; start with a subset on a single GPU.
+
+model: "Qwen/Qwen2.5-3B-Instruct"
+backend: "vllm" # vllm | sglang
+host: "127.0.0.1"
+base_port: 8000
+
+# Cap combinations for first runs (null = full Cartesian product; can be very large).
+max_runs: 24
+
+matrix:
+  batch_sizes: [1, 4, 8, 16, 32]
+  quantizations: ["fp16", "bf16", "fp8", "gptq"]
+  max_sequence_lengths: [2048, 4096, 8192]
+  tensor_parallel: [1, 2, 4]
+  kv_cache_strategies: ["paged", "standard"]
+  concurrent_clients: [10, 50, 100]
+
+load_test:
+  input_tokens: [100, 500, 1000, 2000]
+  output_tokens: [50, 200, 500]
+  duration_sec: 60
+  max_requests: null
+  request_timeout_sec: 180
+  warmup_requests: 3
+  random_seed: 42
+
+cost:
+  gpu_type: "A100-80GB"
+  gpu_hourly_usd: 3.0
+  # Peak memory bandwidth (GB/s) for utilization estimate; optional
+  theoretical_mem_bw_gbps: 2039.0
+
+server:
+  startup_timeout_sec: 420
+  health_interval_sec: 2.0
+  gpu_memory_utilization: 0.9
+  extra_args: []
+
+# How many matrix runs get an extra torch.profiler Chrome trace (0 = skip).
+# In-process profiling against a subprocess server is limited; see profiler.py.
+torch_profiler_sample_runs: 0
+
+output:
+  results_subdir: "results"
