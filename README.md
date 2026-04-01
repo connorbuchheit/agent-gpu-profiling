@@ -32,6 +32,17 @@ Prototype for profiling **GPU and memory usage** of a minimal LLM agent across *
    ```
    Metrics are written to `./results/` (configurable in `config/default.yaml`).
 
+5. **Inference matrix benchmark** (serving configs, load test, Pareto, Plotly dashboard):
+   ```bash
+   pip install -r requirements.txt
+   chmod +x run_benchmark.sh
+   ./run_benchmark.sh --dry-run
+   ./run_benchmark.sh --config configs/test_matrix.yaml --model Qwen/Qwen2.5-3B-Instruct
+   python analyze.py --results-dir results/<run> --replot --report
+   python report.py --results results/<run>/metrics.json
+   ```
+   Use `--skip-server` if vLLM is already listening on the host/port from the YAML. Results: `metrics.json`, `dashboard.html`, `REPORT.md`, optional Chrome traces under `traces/`.
+
 ## Config
 
 - `config/default.yaml`: backend, `base_url`, model, task types, sampling interval, output dir.
@@ -41,5 +52,7 @@ Prototype for profiling **GPU and memory usage** of a minimal LLM agent across *
 ## Layout
 
 - `src/agent_gpu_profiling/`: config, tasks (types + scenarios), agent runner, GPU profiler, harness, CLI.
+- `src/inference_profiler/`: matrix YAML expansion, vLLM/SGLang subprocess control, async load test, metrics, Pareto, Plotly dashboard, Markdown report.
+- `configs/test_matrix.yaml`: serving + load-test grid (reduce lists or set `max_runs` before wide sweeps).
 - `scripts/`: `run_benchmark.py`, `run_vllm.sh`, `run_sglang.sh`.
 - `config/default.yaml`: default config.
